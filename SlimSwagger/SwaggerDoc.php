@@ -36,12 +36,19 @@ use Slim\Middleware;
 class SwaggerDoc extends Middleware {
 
     /**
-     * Add swagger information to route
+     * Slim Route Middleware (optional) Add swagger information to route
      * @param array $swaggerInfo
      * @return callable
      */
     public static function routeDoc($swaggerInfo=array()) {
         return function (\Slim\Route $route) use ($swaggerInfo) {
+            $swaggerInfo = array_merge(array(
+                "PATH" => array(),
+                "GET"  => array()
+            ), $swaggerInfo);
+//            foreach ($route->getHttpMethods() as $method) {
+//                $swaggerInfo[$method][] = true;
+//            }
             $route->swaggerInfo = $swaggerInfo;
         };
     }
