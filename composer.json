@@ -1,0 +1,17 @@
+{
+    "name": "jloosli/slim-swagger-middleware",
+    "description": "Automatically generate swagger documentation from Slim project",
+    "minimum-stability": "dev",
+    "license": "mit",
+    "version": "0.0.1",
+    "authors": [
+        {
+            "name": "Jared Loosli",
+            "homepage": "https://github.com/jloosli/slim-swagger-middleware"
+        }
+    ],
+    "require": {
+        "php": ">5.3.0",
+        "slim/slim": "2.*"
+    }
+}
