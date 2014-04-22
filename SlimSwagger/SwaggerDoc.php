@@ -181,19 +181,6 @@ class SwaggerDoc extends Middleware
                         }
                     }
 
-                    // We only need either post or body params
-                    // Body params are for json payloads and POST are submitted by forms
-                    // Post params will take precedent
-                    if (!empty($this->routeDoc[$routeName]['POST']) && is_array($this->routeDoc[$routeName]['POST'])) {
-                        $route_body_params = $this->routeDoc[$routeName]['POST'];
-                        $body_param_type = 'form';
-                    } else if (!empty($this->routeDoc[$routeName]['BODY']) && is_array($this->routeDoc[$routeName]['BODY'])) {
-                        $route_body_params = $this->routeDoc[$routeName]['BODY'];
-                        $body_param_type = 'body';
-                    } else {
-                        $route_body_params = [];
-                        $body_param_type = 'form';
-                    }
 
                     if ($swagger['useBody'] === true) {
                         array_push($parameters, [
@@ -209,32 +196,11 @@ class SwaggerDoc extends Middleware
                             array_push($parameters, [
                                 "name"          => $query_param,
                                 "description"   => $query_param,
-                                "paramType"     => "query",
+                                "paramType"     => "form",
                                 "required"      => "true",
                                 "allowMultiple" => false,
                                 "dataType"      => "String"
                             ]);
-                        }
-                    }
-
-                    // Init array to story querystring parameters
-                    $body_parms = [];
-
-                    // Only process if it is not empty and an array
-                    if (!empty($route_body_params) && is_array($route_body_params)) {
-                        // Iterate through body parameters
-                        foreach ($route_body_params as $value) {
-                            // Set defaults and add new parameter
-                            array_push($body_parms,
-                                array_merge([
-                                    "name"          => "",
-                                    "description"   => "",
-                                    "paramType"     => $body_param_type,
-                                    "required"      => true,
-                                    "allowMultiple" => false,
-                                    "dataType"      => "String"
-                                ], $value)
-                            );
                         }
                     }
 
