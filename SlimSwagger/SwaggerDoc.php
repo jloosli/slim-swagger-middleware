@@ -47,7 +47,6 @@ class SwaggerDoc extends Middleware
      * @var array
      */
     public $swaggerInfo;
-    public $routeDoc;
 
     private $defaultRouteObject = array(
         'method'           => '',
@@ -130,7 +129,7 @@ class SwaggerDoc extends Middleware
             'nickname'         => '',
             'queryparameters'  => array(),
             'parameters'       => array(),
-            'parameterType'    => 'form', // body or form
+            'useBody'    => false,
             'responseMessages' => array()
         ], $swagger);
     }
@@ -149,30 +148,13 @@ class SwaggerDoc extends Middleware
 
             // Init empty array
             $apiData['apis'] = [];
-            $apiData['alternateapis'] = [];
 
             // Iterate through named routes
             foreach ($app->router()->getNamedRoutes() as $routeName => $route) {
-                var_dump($route);
                 $swagger = $this->getSwaggerInfo($route);
-                var_dump($swagger);
-
-                $parameters = array();
-
-                // Init array to store the path paramater names
-                $path_param_names = [];
 
                 // Get the pattern for the current route
                 $pattern = $route->getPattern();
-
-                // Convert path parameters in the pattern to swagger style params
-                $swagger_pattern = preg_replace_callback('#:([\w]+)\+?#', function ($match) use (&$path_param_names) {
-                    // Store the parameter name, (minus the colon)
-                    $path_param_names[] = $match[1];
-
-                    // Return parameter formatted for swagger
-                    return "{" . $match[1] . "}";
-                }, $pattern);
 
                 list($swaggerPath, $parameters) = $this->getPathArguments($pattern);
 
@@ -182,33 +164,6 @@ class SwaggerDoc extends Middleware
                 // Iterate through the HTTP methods for the route.
                 // This is how we build the "operations" array for the swagger doc
                 foreach ($route->getHttpMethods() as $method) {
-
-                    // Get path parameter options
-                    $route_path_parms = $this->routeDoc[$routeName]['PATH'];
-
-                    // Init array to store path parameters
-                    $path_params = [];
-
-                    // Iterate through path parameters extracted from the route
-                    foreach ($path_param_names as $param_name) {
-                        // Set defaults and add new parameter
-                        array_push($path_params,
-                            array_merge([
-                                "name"          => $param_name,
-                                "description"   => $param_name,
-                                "paramType"     => "path",
-                                "required"      => true,
-                                "allowMultiple" => false,
-                                "dataType"      => "String"
-                            ], (isset($route_path_parms[$param_name]) ? $route_path_parms[$param_name] : []))
-                        );
-                    }
-
-                    // Get the querystring parameter options
-                    $route_query_parms = $this->routeDoc[$routeName]['GET'];
-
-                    // Init array to store querystring parameters
-                    $query_parms = [];
 
                     // Only process if it is not empty and an array
                     if (!empty($route_query_parms) && is_array($route_query_parms)) {
@@ -239,20 +194,6 @@ class SwaggerDoc extends Middleware
                         $route_body_params = [];
                         $body_param_type = 'form';
                     }
-
-                    $defaultRouteObject = array(
-                        'method'           => '',
-                        'summary'          => '',
-                        'notes'            => '',
-                        'type'             => '',
-                        'nickname'         => '',
-                        'parameters'       => array(),
-                        'useBody'          => false, // body or post
-                        'responseMessages' => array()
-                    );
-
-                    $params = [];
-
 
                     if ($swagger['useBody'] === true) {
                         array_push($parameters, [
@@ -300,15 +241,6 @@ class SwaggerDoc extends Middleware
                     // Add a new operation definition merging in all the parameter definitions.
                     $operations[] = [
                         "httpMethod"     => $method,
-                        "summary"        => (!empty($this->routeDoc[$routeName]['summary'])) ? $this->routeDoc[$routeName]['summary'] : $route->getName(),
-                        "responseClass"  => (!empty($this->routeDoc[$routeName]['responseClass'])) ? $this->routeDoc[$routeName]['responseClass'] : "void",
-                        "errorResponses" => (!empty($this->routeDoc[$routeName]['errorResponses'])) ? $this->routeDoc[$routeName]['errorResponses'] : "",
-                        "nickname"       => $route->getName(),
-                        "parameters"     => array_merge($path_params, $query_parms, $body_parms)
-                    ];
-                    // Add a new operation definition merging in all the parameter definitions.
-                    $newOperations[] = [
-                        "httpMethod"     => $method,
                         "summary"        => (!empty($swagger['summary'])) ? $swagger['summary'] : $route->getName(),
                         "responseClass"  => (!empty($swagger['responseClass'])) ? $swagger['responseClass'] : "void",
                         "errorResponses" => (!empty($swagger['errorResponses'])) ? $this->swagger['errorResponses'] : "",
@@ -322,27 +254,19 @@ class SwaggerDoc extends Middleware
                     break;
                 }
 
-                // Now we construct the overall route details
                 $route_details = [
-                    "path"        => $swagger_pattern,
+                    "path"        => $swaggerPath,
                     "description" => $route->getName() . " action",
                     "operations"  => $operations
                 ];
 
-                $newRouteDetails = [
-                    "path"        => $swaggerPath,
-                    "description" => $route->getName() . " action",
-                    "operations"  => $newOperations
-                ];
-
                 // Add new route details
                 array_push($apiData['apis'], $route_details);
-                array_push($apiData['alternateapis'], $newRouteDetails);
             }
 
             // output as json
             $app->response()['Content-Type'] = 'application/json';
-            $app->response()->body("<pre>" . json_encode($apiData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+            $app->response()->body(json_encode($apiData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 
         } else {
             $this->next->call();
